@@ -7,10 +7,12 @@ import {
     ParseIntPipe,
     Post,
     Put,
+    Query,
     Req,
     UseGuards,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import { AgendamentosService } from "src/agendamentos/agendamentos.service";
 import { CreateLocalDto } from "src/classes/dto/local/create-local.dto";
 import { UpdateLocalDto } from "src/classes/dto/local/update-local.dto";
 import { LocalService } from "src/service/local.service";
@@ -18,7 +20,8 @@ import { LocalService } from "src/service/local.service";
 @Controller("locais")
 @UseGuards(AuthGuard("jwt"))
 export class LocalController {
-    constructor(private readonly localService: LocalService) { }
+    constructor(private readonly localService: LocalService,
+        private readonly agendamentosService: AgendamentosService) { }
 
     @Get()
     listar(@Req() req: any) {
@@ -40,6 +43,14 @@ export class LocalController {
     ) {
         const donoId = req.user?.sub;
         return this.localService.atualizar(donoId, id, dto);
+    }
+
+    @Get(":id/disponibilidade")
+    disponibilidade(
+        @Param("id", ParseIntPipe) id: number,
+        @Query("data") data: string,
+    ) {
+        return this.agendamentosService.disponibilidade(id, data);
     }
 
     @Delete(":id")

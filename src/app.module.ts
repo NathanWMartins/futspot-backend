@@ -9,6 +9,7 @@ import { Local } from './classes/entity/local.entity';
 import { LocalModule } from './module/local.module';
 import { HorarioFuncionamento } from './classes/entity/horario-funcionamento.entity';
 import { UploadsModule } from './module/uploads.module';
+import { AgendamentosModule } from './module/agendamentos.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UploadsModule } from './module/uploads.module';
       synchronize: true,
       autoLoadEntities: true,
     }),
+    AgendamentosModule,
     UploadsModule,
     AuthModule,
     LocalModule
