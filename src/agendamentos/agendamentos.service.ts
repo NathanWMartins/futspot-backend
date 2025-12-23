@@ -38,6 +38,7 @@ export class AgendamentosService {
 
         @InjectRepository(HorarioFuncionamento)
         private readonly horarioRepo: Repository<HorarioFuncionamento>,
+
     ) { }
 
     async criarAgendamento(jogadorId: number, dto: CreateAgendamentoDto) {
@@ -92,7 +93,7 @@ export class AgendamentosService {
         if (!ag) throw new NotFoundException("Agendamento não encontrado.");
 
         // regra simples: só o jogador que criou pode cancelar (pode ampliar depois)
-        if (ag.jogadorId !== userId) {
+        if (ag.jogadorId !== userId && ag.local.donoId !== userId) {
             throw new ForbiddenException("Você não pode cancelar este agendamento.");
         }
 
@@ -103,6 +104,7 @@ export class AgendamentosService {
     async listarPorLocalEData(localId: number, data: string) {
         return this.agRepo.find({
             where: { localId, data, status: StatusAgendamento.CONFIRMADO },
+            relations: { jogador: true },
             order: { inicio: "ASC" as any },
         });
     }
@@ -125,16 +127,39 @@ export class AgendamentosService {
         const end = timeToMinutes(horario.fim ?? "00:00");
 
         const ags = await this.listarPorLocalEData(localId, data);
-        const ocupados = new Set(ags.map((a) => a.inicio));
+        const ocupadosMap = new Map(ags.map((a) => [a.inicio, a]));
 
-        const slots: { inicio: string; fim: string; status: "livre" | "ocupado" }[] = [];
+        const slots: {
+            inicio: string;
+            fim: string;
+            status: "livre" | "ocupado";
+            agendamentoId?: number;
+            jogador?: { id: number; nome: string; email: string };
+        }[] = [];
+
         for (let t = start; t + 60 <= end; t += 60) {
             const inicio = minutesToTime(t);
-            slots.push({
-                inicio,
-                fim: minutesToTime(t + 60),
-                status: ocupados.has(inicio) ? "ocupado" : "livre",
-            });
+            const fim = minutesToTime(t + 60);
+
+            const ag = ocupadosMap.get(inicio);
+
+            if (ag) {
+                slots.push({
+                    inicio,
+                    fim,
+                    status: "ocupado",
+                    agendamentoId: ag.id,
+                    jogador: ag.jogador
+                        ? { id: ag.jogador.id, nome: ag.jogador.nome, email: ag.jogador.email }
+                        : undefined,
+                });
+            } else {
+                slots.push({
+                    inicio,
+                    fim,
+                    status: "livre",
+                });
+            }
         }
 
         return { fechado: false, slots };

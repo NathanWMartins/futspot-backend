@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { TipoUsuarioEnum } from './register.dto';
 
 export class LoginDto {
@@ -11,4 +11,8 @@ export class LoginDto {
 
     @IsEnum(TipoUsuarioEnum)
     tipoUsuario: TipoUsuarioEnum;
+
+    @IsString()
+    @IsOptional()
+    fotoUrl: string;
 }

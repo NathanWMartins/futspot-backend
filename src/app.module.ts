@@ -10,19 +10,29 @@ import { LocalModule } from './module/local.module';
 import { HorarioFuncionamento } from './classes/entity/horario-funcionamento.entity';
 import { UploadsModule } from './module/uploads.module';
 import { AgendamentosModule } from './module/agendamentos.module';
+import { LocadoresModule } from './module/locadores.module';
+import { UserModule } from './module/user.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
-      type: 'postgres',
+      type: "postgres",
       url: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false, },
-      entities: [User, Local, HorarioFuncionamento],
+      ssl: process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false },
+      extra: {
+        ssl: process.env.NODE_ENV === "production"
+          ? { rejectUnauthorized: true }
+          : { rejectUnauthorized: false },
+      },
       synchronize: true,
       autoLoadEntities: true,
     }),
+    UserModule,
     AgendamentosModule,
+    LocadoresModule,
     UploadsModule,
     AuthModule,
     LocalModule

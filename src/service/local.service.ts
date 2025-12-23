@@ -67,7 +67,6 @@ export class LocalService {
         return this.localRepository.save(local);
     }
 
-
     async remover(donoId: number, localId: number) {
         const local = await this.localRepository.findOne({
             where: { id: localId },

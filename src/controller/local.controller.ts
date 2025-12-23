@@ -58,6 +58,6 @@ export class LocalController {
         @Req() req: any,
         @Param("id", ParseIntPipe) id: number,
     ) {
-        return this.localService.remover(req.user.id, id);
+        return this.localService.remover(req.user.sub, id);
     }
 }

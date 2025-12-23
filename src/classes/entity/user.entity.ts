@@ -1,4 +1,3 @@
-import { IsOptional, IsString } from 'class-validator';
 import {
     Column,
     CreateDateColumn,
@@ -21,6 +20,9 @@ export class User {
     @Column({ unique: true })
     email: string;
 
+    @Column({ type: "varchar", nullable: true })
+    telefone?: string | null;
+
     @Column()
     senhaHash: string;
 
@@ -32,4 +34,7 @@ export class User {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @Column({ nullable: true })
+    fotoUrl?: string;
 }

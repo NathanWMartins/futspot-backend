@@ -12,7 +12,7 @@ export class UploadsService {
     async uploadLocalFoto(file: Express.Multer.File) {
         const ext = (file.originalname.split(".").pop() || "jpg").toLowerCase();
         const path = `locais/${randomUUID()}.${ext}`;
-        const bucket = process.env.SUPABASE_BUCKET ?? "locais";
+        const bucket = process.env.SUPABASE_BUCKET_LOCAIS ?? "locais";
 
         const { error } = await this.supabase.storage
             .from(bucket || "locais")

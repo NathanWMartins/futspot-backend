@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
 export enum TipoUsuarioEnum {
     JOGADOR = 'jogador',
@@ -18,4 +18,8 @@ export class RegisterDto {
 
     @IsEnum(TipoUsuarioEnum)
     tipoUsuario: TipoUsuarioEnum;
+
+    @IsString()
+    @IsOptional()
+    fotoUrl: string;
 }

@@ -1,0 +1,15 @@
+import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { LocadoresService } from "src/service/locadores.service";
+
+@Controller("locadores")
+@UseGuards(AuthGuard("jwt"))
+export class LocadoresController {
+    constructor(private readonly locadoresService: LocadoresService) { }
+
+    @Get("me/ocupacao")
+    ocupacaoDoDia(@Req() req: any, @Query("data") data: string) {
+        const donoId = req.user.sub;
+        return this.locadoresService.ocupacaoDoDia(donoId, data);
+    }
+}

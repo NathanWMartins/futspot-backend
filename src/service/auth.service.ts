@@ -44,6 +44,7 @@ export class AuthService {
             email: dto.email,
             senhaHash,
             tipoUsuario: dto.tipoUsuario,
+            fotoUrl: dto.fotoUrl,
         });
 
         await this.userRepo.save(user);
@@ -56,6 +57,7 @@ export class AuthService {
                 nome: user.nome,
                 email: user.email,
                 tipoUsuario: user.tipoUsuario,
+                fotoUrl: user.fotoUrl,
             },
             access_token,
         };
@@ -64,6 +66,7 @@ export class AuthService {
     async login(dto: LoginDto) {
         const user = await this.userRepo.findOne({
             where: { email: dto.email },
+            select: ["id", "nome", "email", "tipoUsuario", "fotoUrl", "senhaHash"],
         });
 
         if (!user) {
@@ -89,6 +92,7 @@ export class AuthService {
                 nome: user.nome,
                 email: user.email,
                 tipoUsuario: user.tipoUsuario,
+                fotoUrl: user.fotoUrl,
             },
             access_token,
         };
