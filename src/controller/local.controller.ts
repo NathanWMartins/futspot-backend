@@ -60,4 +60,15 @@ export class LocalController {
     ) {
         return this.localService.remover(req.user.sub, id);
     }
+
+    //Jogador
+    @Get("search")
+    buscarLocais(
+        @Query("cidade") cidade: string,
+        @Query("data") data: string,
+        @Query("tipos") tipos: string,
+        @Query("periodos") periodos?: string
+    ) {
+        return this.localService.buscarLocais({ cidade, data, tipos, periodos });
+    }
 }

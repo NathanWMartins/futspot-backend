@@ -22,8 +22,17 @@ export class Local {
     @Column({ nullable: true })
     descricao?: string;
 
+    @Column({ nullable: true })
+    cep: string;
+
     @Column({ nullable: false })
     endereco: string;
+
+    @Column({ nullable: true })
+    cidade: string;
+
+    @Column({ nullable: true })
+    numero: string;
 
     @Column({ nullable: false })
     tipoLocal: TipoLocal;

@@ -30,8 +30,11 @@ export class LocalService {
     async criar(donoId: number, dto: CreateLocalDto) {
         const local = this.localRepository.create({
             nome: dto.nome,
-            descricao: dto.descricao,
+            descricao: dto.descricao,            
+            cep: dto.cep,
+            cidade: dto.cidade,
             endereco: dto.endereco,
+            numero: dto.numero,
             tipoLocal: dto.tipoLocal,
             precoHora: dto.precoHora,
             fotos: dto.fotos ?? [],
@@ -52,7 +55,10 @@ export class LocalService {
 
         local.nome = dto.nome ?? local.nome;
         local.descricao = dto.descricao ?? local.descricao;
+        local.cep = dto.cep ?? local.cep;
+        local.cidade = dto.cidade ?? local.cidade;
         local.endereco = dto.endereco ?? local.endereco;
+        local.numero = dto.numero ?? local.numero;
         local.tipoLocal = dto.tipoLocal ?? local.tipoLocal;
         local.precoHora = dto.precoHora ?? local.precoHora;
         local.fotos = dto.fotos ?? local.fotos;
@@ -82,5 +88,35 @@ export class LocalService {
 
         await this.localRepository.remove(local);
         return { ok: true };
+    }
+
+    //Jogador
+    async buscarLocais(filtro: {
+        cidade: string;
+        data: string;
+        tipos: string;
+        periodos?: string;
+    }) {
+        const query = this.localRepository.createQueryBuilder("local");
+
+        query.where("local.cidade LIKE :cidade", {
+            cidade: `%${filtro.cidade}%`,
+        });
+
+        // Filtro por tipos de local
+        if (filtro.tipos) {
+            const tiposArray = filtro.tipos.split(",");
+            query.andWhere("local.tipoLocal IN (:...tipos)", { tipos: tiposArray });
+        }
+
+        // Filtro por disponibilidade em determinados períodos
+        if (filtro.periodos && filtro.data) {
+            const periodosArray = filtro.periodos.split(",");
+            // Aqui você implementaria a lógica para filtrar por disponibilidade
+            // com base na data e nos períodos fornecidos.
+            // Esta parte depende da estrutura do seu banco de dados e das entidades relacionadas.
+        }
+
+        return query.getMany();
     }
 }

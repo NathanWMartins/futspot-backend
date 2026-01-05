@@ -40,8 +40,19 @@ export class CreateLocalDto {
     descricao?: string;
 
     @IsString()
+    @IsOptional()
+    cep?: string;
+
+    @IsString()
+    @IsOptional()
+    cidade?: string;
+
+    @IsString()
     @IsNotEmpty()
     endereco: string;
+
+    @IsString()
+    numero?: string;
 
     @IsIn(["society", "futsal", "campo"])
     tipoLocal: "society" | "futsal" | "campo";
