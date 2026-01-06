@@ -30,7 +30,7 @@ export class LocalService {
     async criar(donoId: number, dto: CreateLocalDto) {
         const local = this.localRepository.create({
             nome: dto.nome,
-            descricao: dto.descricao,            
+            descricao: dto.descricao,
             cep: dto.cep,
             cidade: dto.cidade,
             endereco: dto.endereco,
@@ -91,32 +91,34 @@ export class LocalService {
     }
 
     //Jogador
-    async buscarLocais(filtro: {
-        cidade: string;
-        data: string;
-        tipos: string;
-        periodos?: string;
-    }) {
-        const query = this.localRepository.createQueryBuilder("local");
+    async buscarLocais(
+        filtro: { cidade: string; data: string; tipos: string; periodos?: string; }
+    ) {
+        const qb = this.localRepository.createQueryBuilder("local");
 
-        query.where("local.cidade LIKE :cidade", {
-            cidade: `%${filtro.cidade}%`,
-        });
+        qb.where("local.cidade ILIKE :cidade", { cidade: `%${filtro.cidade}%` });
 
-        // Filtro por tipos de local
         if (filtro.tipos) {
-            const tiposArray = filtro.tipos.split(",");
-            query.andWhere("local.tipoLocal IN (:...tipos)", { tipos: tiposArray });
+            const tiposArray = filtro.tipos.split(",").filter(Boolean);
+            if (tiposArray.length) qb.andWhere("local.tipoLocal IN (:...tipos)", { tipos: tiposArray });
         }
 
-        // Filtro por disponibilidade em determinados períodos
-        if (filtro.periodos && filtro.data) {
-            const periodosArray = filtro.periodos.split(",");
-            // Aqui você implementaria a lógica para filtrar por disponibilidade
-            // com base na data e nos períodos fornecidos.
-            // Esta parte depende da estrutura do seu banco de dados e das entidades relacionadas.
-        }
+        qb.leftJoin("avaliacoes_locais", "av", "av.localId = local.id");
 
-        return query.getMany();
+        qb.addSelect("COALESCE(AVG(av.nota), 0)", "rating");
+        qb.addSelect("COUNT(av.id)", "totalAvaliacoes");
+
+        qb.groupBy("local.id");
+        qb.orderBy("local.createdAt", "DESC");
+
+        const { entities, raw } = await qb.getRawAndEntities();
+
+        // junta os agregados com as entidades
+        return entities.map((local, idx) => ({
+            ...local,
+            rating: Number(raw[idx]?.rating ?? 0),
+            totalAvaliacoes: Number(raw[idx]?.totalAvaliacoes ?? 0),
+        }));
     }
+
 }

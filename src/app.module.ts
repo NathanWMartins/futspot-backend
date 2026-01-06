@@ -12,6 +12,7 @@ import { UploadsModule } from './module/uploads.module';
 import { AgendamentosModule } from './module/agendamentos.module';
 import { LocadoresModule } from './module/locadores.module';
 import { UserModule } from './module/user.module';
+import { AvaliacaoModule } from './module/avaliacao.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { UserModule } from './module/user.module';
       autoLoadEntities: true,
     }),
     UserModule,
+    AvaliacaoModule,
     AgendamentosModule,
     LocadoresModule,
     UploadsModule,
