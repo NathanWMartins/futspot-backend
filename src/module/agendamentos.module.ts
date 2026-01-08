@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { AgendamentosController } from "src/agendamentos/agendamentos.controller";
+import { AgendamentosController } from "src/controller/agendamentos.controller";
 import { AgendamentosService } from "src/agendamentos/agendamentos.service";
 import { Agendamento } from "src/classes/entity/agendamento.entity";
 import { HorarioFuncionamento } from "src/classes/entity/horario-funcionamento.entity";

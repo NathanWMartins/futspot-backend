@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
@@ -70,5 +71,15 @@ export class LocalController {
         @Query("periodos") periodos?: string
     ) {
         return this.localService.buscarLocais({ cidade, data, tipos, periodos });
+    }
+
+    @Get(":id/disponibilidade/data")
+    async disponibilidadePorData(
+        @Param("id") id: string,
+        @Query("data") data: string
+    ) {
+
+        if (!data) throw new BadRequestException("Parâmetro 'data' é obrigatório (YYYY-MM-DD).");
+        return this.localService.getDisponibilidadePorData(Number(id), data);
     }
 }

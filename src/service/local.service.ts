@@ -1,14 +1,24 @@
 import {
     ForbiddenException,
+    Inject,
     Injectable,
     NotFoundException,
-} from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { CreateLocalDto } from "src/classes/dto/local/create-local.dto";
-import { UpdateLocalDto } from "src/classes/dto/local/update-local.dto";
-import { HorarioFuncionamento } from "src/classes/entity/horario-funcionamento.entity";
-import { Local } from "src/classes/entity/local.entity";
-import { Repository } from "typeorm";
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateLocalDto } from 'src/classes/dto/local/create-local.dto';
+import { UpdateLocalDto } from 'src/classes/dto/local/update-local.dto';
+import {
+    Agendamento,
+    StatusAgendamento,
+} from 'src/classes/entity/agendamento.entity';
+import { HorarioFuncionamento } from 'src/classes/entity/horario-funcionamento.entity';
+import { Local } from 'src/classes/entity/local.entity';
+import {
+    buildHourlySlots,
+    filterByPeriodos,
+    normalizeHHMM,
+} from 'src/utils/date-time';
+import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class LocalService {
@@ -18,12 +28,15 @@ export class LocalService {
 
         @InjectRepository(HorarioFuncionamento)
         private readonly horarioRepo: Repository<HorarioFuncionamento>,
+
+        @InjectRepository(Agendamento)
+        private readonly agendamentoRepository: Repository<Agendamento>,
     ) { }
 
     async listarPorDono(donoId: number) {
         return this.localRepository.find({
             where: { donoId },
-            order: { createdAt: "DESC" },
+            order: { createdAt: 'DESC' },
         });
     }
 
@@ -50,8 +63,9 @@ export class LocalService {
             relations: { horarios: true },
         });
 
-        if (!local) throw new NotFoundException("Local não encontrado.");
-        if (local.donoId !== donoId) throw new ForbiddenException("Você não pode editar este local.");
+        if (!local) throw new NotFoundException('Local não encontrado.');
+        if (local.donoId !== donoId)
+            throw new ForbiddenException('Você não pode editar este local.');
 
         local.nome = dto.nome ?? local.nome;
         local.descricao = dto.descricao ?? local.descricao;
@@ -79,11 +93,11 @@ export class LocalService {
         });
 
         if (!local) {
-            throw new NotFoundException("Local não encontrado.");
+            throw new NotFoundException('Local não encontrado.');
         }
 
         if (local.donoId !== donoId) {
-            throw new ForbiddenException("Você não pode remover este local.");
+            throw new ForbiddenException('Você não pode remover este local.');
         }
 
         await this.localRepository.remove(local);
@@ -91,34 +105,137 @@ export class LocalService {
     }
 
     //Jogador
-    async buscarLocais(
-        filtro: { cidade: string; data: string; tipos: string; periodos?: string; }
-    ) {
-        const qb = this.localRepository.createQueryBuilder("local");
+    async buscarLocais(filtro: {
+        cidade: string;
+        data: string;
+        tipos: string;
+        periodos?: string;
+    }) {
+        const qb = this.localRepository.createQueryBuilder('local');
 
-        qb.where("local.cidade ILIKE :cidade", { cidade: `%${filtro.cidade}%` });
+        qb.where('local.cidade ILIKE :cidade', { cidade: `%${filtro.cidade}%` });
 
         if (filtro.tipos) {
-            const tiposArray = filtro.tipos.split(",").filter(Boolean);
-            if (tiposArray.length) qb.andWhere("local.tipoLocal IN (:...tipos)", { tipos: tiposArray });
+            const tiposArray = filtro.tipos.split(',').filter(Boolean);
+            if (tiposArray.length)
+                qb.andWhere('local.tipoLocal IN (:...tipos)', { tipos: tiposArray });
         }
 
-        qb.leftJoin("avaliacoes_locais", "av", "av.localId = local.id");
+        qb.leftJoin('avaliacoes_locais', 'av', 'av.localId = local.id');
+        qb.addSelect('COALESCE(AVG(av.nota), 0)', 'rating');
+        qb.addSelect('COUNT(av.id)', 'totalAvaliacoes');
 
-        qb.addSelect("COALESCE(AVG(av.nota), 0)", "rating");
-        qb.addSelect("COUNT(av.id)", "totalAvaliacoes");
-
-        qb.groupBy("local.id");
-        qb.orderBy("local.createdAt", "DESC");
+        qb.groupBy('local.id');
+        qb.orderBy('local.createdAt', 'DESC');
 
         const { entities, raw } = await qb.getRawAndEntities();
 
-        // junta os agregados com as entidades
-        return entities.map((local, idx) => ({
+        // agregados
+        const base = entities.map((local, idx) => ({
             ...local,
             rating: Number(raw[idx]?.rating ?? 0),
             totalAvaliacoes: Number(raw[idx]?.totalAvaliacoes ?? 0),
         }));
+
+        // Se não veio data, devolve sem slots
+        if (!filtro.data) {
+            return base.map((l) => ({ ...l, slotsDisponiveis: [] }));
+        }
+
+        const diaSemana = new Date(`${filtro.data}T00:00:00`).getDay();
+
+        const localIds = base.map((l) => l.id);
+        if (!localIds.length) return [];
+
+        const horariosDoDia = await this.horarioRepo.find({
+            where: {
+                localId: In(localIds),
+                diaSemana,
+            },
+        });
+
+        const horarioMap = new Map<
+            number,
+            { aberto: boolean; inicio: string | null; fim: string | null }
+        >();
+        for (const h of horariosDoDia) {
+            horarioMap.set(h.localId, {
+                aberto: h.aberto,
+                inicio: h.inicio,
+                fim: h.fim,
+            });
+        }
+
+        const agendamentos = await this.agendamentoRepository.find({
+            where: {
+                localId: In(localIds),
+                data: filtro.data,
+                status: StatusAgendamento.CONFIRMADO,
+            },
+            select: ['localId', 'inicio'],
+        });
+
+        const ocupadosMap = new Map<number, Set<string>>();
+        for (const ag of agendamentos) {
+            const hhmm = normalizeHHMM(ag.inicio);
+            if (!ocupadosMap.has(ag.localId)) ocupadosMap.set(ag.localId, new Set());
+            ocupadosMap.get(ag.localId)!.add(hhmm);
+        }
+
+        // 3) Montar slots por local
+        return base.map((local) => {
+            const hf = horarioMap.get(local.id);
+
+            let slots: string[] = [];
+            if (hf?.aberto && hf.inicio && hf.fim) {
+                slots = buildHourlySlots(hf.inicio, hf.fim);
+
+                // remove ocupados
+                const ocupados = ocupadosMap.get(local.id);
+                if (ocupados?.size) {
+                    slots = slots.filter((s) => !ocupados.has(s));
+                }
+
+                // aplica filtros de período, se existirem
+                slots = filterByPeriodos(slots, filtro.periodos);
+            }
+
+            return {
+                ...local,
+                slotsDisponiveis: slots,
+            };
+        });
     }
 
+    async getDisponibilidadePorData(localId: number, data: string) {
+        const local = await this.localRepository.findOne({
+            where: { id: localId },
+        });
+        if (!local) throw new NotFoundException('Local não encontrado.');
+
+        const [y, m, d] = data.split("-").map(Number);
+        const diaSemana = new Date(y, m - 1, d).getDay();
+
+
+        const hf = await this.horarioRepo.findOne({
+            where: { localId, diaSemana },
+        });
+
+        if (!hf || !hf.aberto || !hf.inicio || !hf.fim) {
+            return { localId, data, slotsDisponiveis: [] as string[] };
+        }
+
+        let slots = buildHourlySlots(hf.inicio, hf.fim);
+
+        const ags = await this.agendamentoRepository.find({
+            where: { localId, data, status: StatusAgendamento.CONFIRMADO },
+            select: ['inicio'],
+        });
+
+
+        const ocupados = new Set(ags.map((a) => normalizeHHMM(a.inicio)));
+        slots = slots.filter((s) => !ocupados.has(s));
+
+        return { localId, data, slotsDisponiveis: slots };
+    }
 }

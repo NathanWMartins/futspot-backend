@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Param, ParseIntPipe, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { AgendamentosService } from "./agendamentos.service";
-import { CreateAgendamentoDto } from "./dto/create-agendamento.dto";
+import { AgendamentosService } from "../agendamentos/agendamentos.service";
+import { CreateAgendamentoDto } from "../classes/dto/agendamento/create-agendamento.dto";
 
 @Controller("agendamentos")
 @UseGuards(AuthGuard("jwt"))

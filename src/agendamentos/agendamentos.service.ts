@@ -1,12 +1,13 @@
 import {
     BadRequestException,
+    ConflictException,
     ForbiddenException,
     Injectable,
     NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { CreateAgendamentoDto } from "./dto/create-agendamento.dto";
+import { CreateAgendamentoDto } from "../classes/dto/agendamento/create-agendamento.dto";
 import { Agendamento, StatusAgendamento } from "src/classes/entity/agendamento.entity";
 import { Local } from "src/classes/entity/local.entity";
 import { HorarioFuncionamento } from "src/classes/entity/horario-funcionamento.entity";
@@ -54,38 +55,45 @@ export class AgendamentosService {
             throw new BadRequestException("Local fechado neste dia.");
         }
 
-        // slot de 1h
-        const inicioMin = timeToMinutes(dto.inicio);
+        const inicio = dto.inicio.slice(0, 5);
+
+        const inicioMin = timeToMinutes(inicio);
         const fimMin = inicioMin + 60;
         const fim = minutesToTime(fimMin);
 
-        // valida dentro do range do local
         const rangeStart = timeToMinutes(horario.inicio ?? "00:00");
         const rangeEnd = timeToMinutes(horario.fim ?? "00:00");
         if (!(inicioMin >= rangeStart && fimMin <= rangeEnd)) {
             throw new BadRequestException("Horário fora do funcionamento do local.");
         }
 
-        // garante que não existe reserva confirmada pro mesmo slot
         const existing = await this.agRepo.findOne({
             where: {
                 localId: dto.localId,
                 data: dto.data,
-                inicio: dto.inicio,
+                inicio: inicio,
                 status: StatusAgendamento.CONFIRMADO,
             },
         });
-        if (existing) throw new BadRequestException("Horário já reservado.");
+        if (existing) throw new ConflictException("Horário já reservado.");
 
         const ag = this.agRepo.create({
             localId: dto.localId,
             jogadorId,
             data: dto.data,
-            inicio: dto.inicio,
+            inicio: inicio,
             status: StatusAgendamento.CONFIRMADO,
         });
 
-        return this.agRepo.save(ag);
+        try {
+            return await this.agRepo.save(ag);
+        } catch (e: any) {
+            if (e?.code === "23505") {
+                throw new ConflictException("Horário já reservado.");
+            }
+            throw e;
+        }
+
     }
 
     async cancelarAgendamento(userId: number, agendamentoId: number) {
