@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, ParseIntPipe, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { AgendamentosService } from "../agendamentos/agendamentos.service";
 import { CreateAgendamentoDto } from "../classes/dto/agendamento/create-agendamento.dto";
@@ -19,4 +19,11 @@ export class AgendamentosController {
         const userId = req.user.sub;
         return this.service.cancelarAgendamento(userId, id);
     }
+
+    @Get("me")
+    minhaAgenda(@Req() req: any) {
+        const jogadorId = req.user.sub;
+        return this.service.getMinhaAgenda(jogadorId);
+    }
+
 }

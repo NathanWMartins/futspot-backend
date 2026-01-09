@@ -44,7 +44,7 @@ export class AvaliacaoLocal {
   agendamento: Agendamento;
 
   @Column({ type: "numeric", precision: 2, scale: 1 })
-  nota: number; // 0.0 a 5.0 (0.5 em 0.5, por exemplo)
+  nota: number;
 
   @Column({ type: "text", nullable: true })
   comentario?: string | null;

@@ -16,14 +16,14 @@ export class AvaliacaoService {
     ) { }
 
     async criar(jogadorId: number, dto: CreateAvaliacaoDto) {
-        const ag = await this.agendamentoRepo.findOne({ where: { id: dto.agendamentoId } });
+        const ag = await this.agendamentoRepo.findOne({
+            where: { id: dto.agendamentoId, jogadorId },
+            select: ["id", "localId", "data", "inicio", "status", "jogadorId"],
+        });
         if (!ag) throw new NotFoundException("Agendamento não encontrado.");
 
         if (ag.jogadorId !== jogadorId) {
             throw new ForbiddenException("Você não pode avaliar um agendamento de outro usuário.");
-        }
-        if (ag.localId !== dto.localId) {
-            throw new BadRequestException("Esse agendamento não pertence ao local informado.");
         }
         if (ag.status === StatusAgendamento.CANCELADO) {
             throw new BadRequestException("Agendamentos cancelados não podem ser avaliados.");
@@ -34,12 +34,11 @@ export class AvaliacaoService {
             throw new BadRequestException("Você só pode avaliar após o horário do agendamento.");
         }
 
-        // check manual (pra mensagem melhor)
         const exists = await this.avaliacaoRepo.findOne({ where: { agendamentoId: dto.agendamentoId } });
         if (exists) throw new BadRequestException("Este agendamento já foi avaliado.");
 
         const entity = this.avaliacaoRepo.create({
-            localId: dto.localId,
+            localId: ag.localId,
             jogadorId,
             agendamentoId: dto.agendamentoId,
             nota: dto.nota,

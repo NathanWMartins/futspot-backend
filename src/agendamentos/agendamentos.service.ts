@@ -28,6 +28,19 @@ function diaSemanaFromYYYYMMDD(date: string): number {
     return dt.getUTCDay();
 }
 
+type AgendamentoCardDTO = {
+    id: number;
+    localId: number;
+    localNome: string;
+    localFotoUrl?: string | null;
+    endereco?: string | null;
+    data: string;
+    inicio: string;
+    status: "confirmado" | "cancelado";
+    podeAvaliar: boolean;
+    avaliacao?: { id: number; nota: number; comentario?: string | null } | null;
+};
+
 @Injectable()
 export class AgendamentosService {
     constructor(
@@ -171,5 +184,96 @@ export class AgendamentosService {
         }
 
         return { fechado: false, slots };
+    }
+
+    //Jogador
+    async getMinhaAgenda(jogadorId: number) {
+        const rows = await this.agRepo
+            .createQueryBuilder("ag")
+            .innerJoin("locais", "l", "l.id = ag.localId")
+            .leftJoin("avaliacoes_locais", "av", "av.agendamentoId = ag.id")
+            .where("ag.jogadorId = :jogadorId", { jogadorId })
+            .select([
+                "ag.id as id",
+                "ag.localId as localId",
+                "ag.data as data",
+                "ag.inicio as inicio",
+                "ag.status as status",
+
+                "l.nome as localNome",
+                "l.endereco as endereco",
+                "l.fotos as fotos",
+
+                `av.id as "avaliacaoId"`,
+                `av.nota as "avaliacaoNota"`,
+                `av.comentario as "avaliacaoComentario"`,
+            ])
+            .addSelect(
+                `CASE 
+                    WHEN ((ag.data::timestamp + ag.inicio) AT TIME ZONE 'America/Sao_Paulo') >= NOW()
+                    THEN true ELSE false END`,
+                "isFuturo"
+            )
+            .addSelect(
+                `CASE 
+                    WHEN ag.status = '${StatusAgendamento.CONFIRMADO}'
+                    AND ((ag.data::timestamp + ag.inicio) AT TIME ZONE 'America/Sao_Paulo') < NOW()
+                    AND av.id IS NULL
+                    THEN true ELSE false END`,
+                "podeAvaliar"
+            )
+            .orderBy("ag.data", "DESC")
+            .addOrderBy("ag.inicio", "DESC")
+            .getRawMany();
+
+        const cards: (AgendamentoCardDTO & { isFuturo: boolean })[] = rows.map((r: any) => {
+            const inicioHHMM = String(r.inicio).slice(0, 5);
+
+            let fotos: string[] = [];
+            if (Array.isArray(r.fotos)) fotos = r.fotos;
+            else if (typeof r.fotos === "string" && r.fotos.startsWith("{") && r.fotos.endsWith("}")) {
+                fotos = r.fotos
+                    .slice(1, -1)
+                    .split(",")
+                    .map((s: string) => s.trim())
+                    .filter(Boolean);
+            }
+
+            const avaliacao =
+                r.avaliacaoId != null
+                    ? {
+                        id: Number(r.avaliacaoId),
+                        nota: Number(r.avaliacaoNota),
+                        comentario: r.avaliacaoComentario ?? null,
+                    }
+                    : null;
+
+            return {
+                id: Number(r.id),
+                localId: Number(r.localId),
+                localNome: r.localnome,
+                localFotoUrl: fotos?.[0] ?? null,
+                endereco: r.endereco ?? null,
+                data: r.data,
+                inicio: inicioHHMM,
+                status: r.status,
+                podeAvaliar: r.podeAvaliar === true || r.podeAvaliar === "true",
+                avaliacao,
+                isFuturo: r.isFuturo === true || r.isFuturo === "true",
+            };
+        });
+
+        const proximos = cards
+            .filter((c) => c.status === StatusAgendamento.CONFIRMADO && c.isFuturo)
+            .sort((a, b) => (a.data + a.inicio).localeCompare(b.data + b.inicio)) // crescente
+
+        const historico = cards
+            .filter((c) => c.status === StatusAgendamento.CANCELADO || !c.isFuturo)
+            .sort((a, b) => (b.data + b.inicio).localeCompare(a.data + a.inicio)); // decrescente
+
+        return {
+            proximos: proximos.map(({ isFuturo, ...rest }) => rest),
+            historico: historico.map(({ isFuturo, ...rest }) => rest),
+        };
     }
 }
