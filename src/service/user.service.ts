@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UpdateUserDto } from "src/classes/dto/user/update-user.dto";
 import { User } from "src/classes/entity/user.entity";
 import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { Agendamento, StatusAgendamento } from "src/classes/entity/agendamento.entity";
+import { UserStatsResponse } from "src/classes/dto/user/user-stats.dto";
 
 @Injectable()
 export class UserService {
@@ -14,6 +16,9 @@ export class UserService {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+
+        @InjectRepository(Agendamento)
+        private readonly agendamentoRepository: Repository<Agendamento>
     ) {
         const url = process.env.SUPABASE_URL;
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -81,6 +86,28 @@ export class UserService {
         }
 
         return this.userRepository.save(user);
+    }
+
+    async getMeStats(userId: number): Promise<UserStatsResponse> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            select: ["id", "createdAt"],
+        });
+        if (!user) throw new NotFoundException("Usuário não encontrado.");
+
+        const raw = await this.agendamentoRepository
+            .createQueryBuilder("ag")
+            .select("COUNT(ag.id)", "totalReservas")
+            .addSelect("COUNT(DISTINCT ag.localId)", "locaisDiferentes")
+            .where("ag.jogadorId = :userId", { userId })
+            .andWhere("ag.status = :st", { st: StatusAgendamento.CONFIRMADO })
+            .getRawOne();
+
+        return {
+            createdAt: user.createdAt.toISOString(),
+            totalReservas: Number(raw?.totalReservas ?? 0),
+            locaisDiferentes: Number(raw?.locaisDiferentes ?? 0),
+        };
     }
 
 }

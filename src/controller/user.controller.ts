@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Put, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Get, Post, Put, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UpdateUserDto } from "src/classes/dto/user/update-user.dto";
@@ -33,5 +33,11 @@ export class UserController {
                 fotoUrl: user.fotoUrl,
             },
         };
+    }
+
+    @Get("me/stats")
+    getMeStats(@Req() req: any) {
+        const userId = req.user.sub;
+        return this.userService.getMeStats(userId);
     }
 }
