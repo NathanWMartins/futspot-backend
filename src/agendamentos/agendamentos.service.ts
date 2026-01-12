@@ -149,7 +149,9 @@ export class AgendamentosService {
         const end = timeToMinutes(horario.fim ?? "00:00");
 
         const ags = await this.listarPorLocalEData(localId, data);
-        const ocupadosMap = new Map(ags.map((a) => [a.inicio, a]));
+        const ocupadosMap = new Map(
+            ags.map((a) => [a.inicio.slice(0, 5), a])
+        );
 
         const slots: {
             inicio: string;
