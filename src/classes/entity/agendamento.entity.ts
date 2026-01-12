@@ -14,6 +14,13 @@ export enum StatusAgendamento {
     CANCELADO = "cancelado",
 }
 
+export enum CanceladoPor {
+    JOGADOR,
+    DONO_QUADRA,
+    SISTEMA
+}
+
+
 @Entity("agendamentos")
 @Index(["localId", "data", "inicio"], { unique: true }) 
 export class Agendamento {
@@ -40,6 +47,9 @@ export class Agendamento {
 
     @Column({ type: "enum", enum: StatusAgendamento, default: StatusAgendamento.CONFIRMADO })
     status: StatusAgendamento;
+
+    @Column({nullable: true})
+    canceladoPor?: CanceladoPor;
 
     @CreateDateColumn()
     createdAt: Date;
