@@ -43,4 +43,7 @@ export class Agendamento {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @Column()
+    valorPagar: number;
 }

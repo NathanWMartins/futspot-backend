@@ -96,6 +96,7 @@ export class AgendamentosService {
             data: dto.data,
             inicio: inicio,
             status: StatusAgendamento.CONFIRMADO,
+            valorPagar: local.precoHora
         });
 
         try {

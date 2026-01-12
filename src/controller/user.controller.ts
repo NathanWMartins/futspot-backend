@@ -35,9 +35,15 @@ export class UserController {
         };
     }
 
-    @Get("me/stats")
-    getMeStats(@Req() req: any) {
+    @Get("jogador/me/stats")
+    getMeStatsJogador(@Req() req: any) {
         const userId = req.user.sub;
-        return this.userService.getMeStats(userId);
+        return this.userService.getMeStatsJogador(userId);
+    }
+
+    @Get("locador/me/stats")
+    getMeStatsLocador(@Req() req: any) {
+        const userId = req.user.sub;
+        return this.userService.getMeStatsLocador(userId);
     }
 }
