@@ -5,9 +5,10 @@ import { AgendamentosService } from "src/agendamentos/agendamentos.service";
 import { Agendamento } from "src/classes/entity/agendamento.entity";
 import { HorarioFuncionamento } from "src/classes/entity/horario-funcionamento.entity";
 import { Local } from "src/classes/entity/local.entity";
+import { User } from "src/classes/entity/user.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Agendamento, Local, HorarioFuncionamento])],
+    imports: [TypeOrmModule.forFeature([Agendamento, Local, HorarioFuncionamento, User])],
     controllers: [AgendamentosController],
     providers: [AgendamentosService],
     exports: [AgendamentosService],
