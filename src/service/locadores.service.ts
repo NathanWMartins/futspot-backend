@@ -36,10 +36,10 @@ export type JogadorPerfilResponse = {
   totalCancelados: number;
   taxaCancelamento: number;
   comportamento:
-    | 'Nunca cancelou'
-    | 'Raramente cancela'
-    | 'Às vezes cancela'
-    | 'Cancela com frequência';
+  | 'Nunca cancelou'
+  | 'Raramente cancela'
+  | 'Às vezes cancela'
+  | 'Cancela com frequência';
 
   createdAt: string;
   mediaAvaliacoes: number | null;
@@ -60,7 +60,7 @@ export class LocadoresService {
 
     @InjectRepository(AvaliacaoLocal)
     private readonly avaliacaoRepository: Repository<AvaliacaoLocal>,
-  ) {}
+  ) { }
 
   async ocupacaoDoDia(donoId: number, data: string): Promise<OcupacaoResponse> {
     if (!isValidISODate(data)) {
@@ -199,19 +199,20 @@ export class LocadoresService {
       .innerJoin('av.local', 'l')
       .where('av.jogadorId = :jogadorId', { jogadorId })
       .andWhere('l.donoId = :locadorId', { locadorId })
-      .select(['av.nota'])
-      .getMany();
+      .select('av.nota', 'nota')
+      .getRawMany();
 
     const totalAvaliacoes = avaliacoes.length;
 
     const mediaAvaliacoes =
       totalAvaliacoes === 0
-        ? null
+        ? 0
         : Number(
-            (
-              avaliacoes.reduce((sum, a) => sum + a.nota, 0) / totalAvaliacoes
-            ).toFixed(1),
-          );
+          (
+            avaliacoes.reduce((sum, a) => sum + Number(a.nota), 0) /
+            totalAvaliacoes
+          ).toFixed(1),
+        );
 
     return {
       id: jogador.id,

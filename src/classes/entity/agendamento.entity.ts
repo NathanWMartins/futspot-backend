@@ -12,6 +12,8 @@ import { User } from "./user.entity";
 export enum StatusAgendamento {
     CONFIRMADO = "confirmado",
     CANCELADO = "cancelado",
+    SOLICITADO = "solicitado",
+    RECUSADO = "recusado",
 }
 
 export enum CanceladoPor {
@@ -19,7 +21,6 @@ export enum CanceladoPor {
     DONO_QUADRA,
     SISTEMA
 }
-
 
 @Entity("agendamentos")
 @Index(["localId", "data", "inicio"], { unique: true }) 

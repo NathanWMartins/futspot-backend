@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateAgendamentoDto } from '../classes/dto/agendamento/create-agendamento.dto';
 import {
   Agendamento,
@@ -40,7 +40,7 @@ type AgendamentoCardDTO = {
   endereco?: string | null;
   data: string;
   inicio: string;
-  status: 'confirmado' | 'cancelado';
+  status: StatusAgendamento;
   podeAvaliar: boolean;
   avaliacao?: { id: number; nota: number; comentario?: string | null } | null;
 };
@@ -56,7 +56,15 @@ export class AgendamentosService {
 
     @InjectRepository(HorarioFuncionamento)
     private readonly horarioRepo: Repository<HorarioFuncionamento>,
-  ) {}
+  ) { }
+
+  private validarAgendamentoNaoExpirado(ag: Agendamento) {
+    if (agendamentoJaPassou(ag.data, ag.inicio)) {
+      throw new BadRequestException(
+        'Não é possível alterar um agendamento que já ocorreu ou está em andamento.'
+      );
+    }
+  }
 
   async criarAgendamento(jogadorId: number, dto: CreateAgendamentoDto) {
     const local = await this.localRepo.findOne({ where: { id: dto.localId } });
@@ -98,7 +106,7 @@ export class AgendamentosService {
       jogadorId,
       data: dto.data,
       inicio: inicio,
-      status: StatusAgendamento.CONFIRMADO,
+      status: StatusAgendamento.SOLICITADO,
       valorPagar: local.precoHora,
     });
 
@@ -118,7 +126,11 @@ export class AgendamentosService {
       relations: ['local'],
     });
 
-    if (!ag) { throw new NotFoundException('Agendamento não encontrado.'); }
+    if (!ag) {
+      throw new NotFoundException('Agendamento não encontrado.');
+    }
+
+    this.validarAgendamentoNaoExpirado(ag);
 
     if (ag.status === StatusAgendamento.CANCELADO) {
       throw new BadRequestException('Este agendamento já foi cancelado.');
@@ -133,17 +145,27 @@ export class AgendamentosService {
 
     ag.status = StatusAgendamento.CANCELADO;
 
-    if (isJogador) { ag.canceladoPor = CanceladoPor.JOGADOR; } 
-    else if (isDonoLocal) { ag.canceladoPor = CanceladoPor.DONO_QUADRA; }
+    if (isJogador) {
+      ag.canceladoPor = CanceladoPor.JOGADOR;
+    } else if (isDonoLocal) {
+      ag.canceladoPor = CanceladoPor.DONO_QUADRA;
+    }
 
     return this.agRepo.save(ag);
   }
 
   async listarPorLocalEData(localId: number, data: string) {
     return this.agRepo.find({
-      where: { localId, data, status: StatusAgendamento.CONFIRMADO },
+      where: {
+        localId,
+        data,
+        status: In([
+          StatusAgendamento.CONFIRMADO,
+          StatusAgendamento.SOLICITADO,
+        ]),
+      },
       relations: { jogador: true },
-      order: { inicio: 'ASC' as any },
+      order: { inicio: 'ASC' },
     });
   }
 
@@ -170,7 +192,7 @@ export class AgendamentosService {
     const slots: {
       inicio: string;
       fim: string;
-      status: 'livre' | 'ocupado';
+      status: 'livre' | 'ocupado' | 'solicitado';
       agendamentoId?: number;
       jogador?: { id: number; nome: string; email: string; fotoUrl?: string };
     }[] = [];
@@ -181,31 +203,89 @@ export class AgendamentosService {
 
       const ag = ocupadosMap.get(inicio);
 
-      if (ag) {
-        slots.push({
-          inicio,
-          fim,
-          status: 'ocupado',
-          agendamentoId: ag.id,
-          jogador: ag.jogador
-            ? {
-                id: ag.jogador.id,
-                nome: ag.jogador.nome,
-                email: ag.jogador.email,
-                fotoUrl: ag.jogador.fotoUrl,
-              }
-            : undefined,
-        });
-      } else {
+      if (!ag) {
         slots.push({
           inicio,
           fim,
           status: 'livre',
         });
+        continue;
       }
+
+      const status =
+        ag.status === StatusAgendamento.CONFIRMADO
+          ? 'ocupado'
+          : ag.status === StatusAgendamento.SOLICITADO
+            ? 'solicitado'
+            : 'livre';
+
+      slots.push({
+        inicio,
+        fim,
+        status,
+        agendamentoId: ag.id,
+        jogador: ag.jogador
+          ? {
+            id: ag.jogador.id,
+            nome: ag.jogador.nome,
+            email: ag.jogador.email,
+            fotoUrl: ag.jogador.fotoUrl,
+          }
+          : undefined,
+      });
     }
 
     return { fechado: false, slots };
+  }
+
+  async confirmarAgendamento(userId: number, agendamentoId: number) {
+    const agendamento = await this.agRepo.findOne({
+      where: { id: agendamentoId },
+      relations: { local: true },
+    });
+
+    if (!agendamento) {
+      throw new NotFoundException('Agendamento não encontrado');
+    }
+
+    this.validarAgendamentoNaoExpirado(agendamento);
+
+    if (agendamento.status !== StatusAgendamento.SOLICITADO) {
+      throw new BadRequestException('Agendamento não está pendente');
+    }
+
+    if (agendamento.local.donoId !== userId) {
+      throw new ForbiddenException('Você não pode confirmar este agendamento');
+    }
+
+    agendamento.status = StatusAgendamento.CONFIRMADO;
+
+    return this.agRepo.save(agendamento);
+  }
+
+  async recusarAgendamento(userId: number, agendamentoId: number) {
+    const agendamento = await this.agRepo.findOne({
+      where: { id: agendamentoId },
+      relations: { local: true },
+    });
+
+    if (!agendamento) {
+      throw new NotFoundException('Agendamento não encontrado');
+    }
+
+    this.validarAgendamentoNaoExpirado(agendamento);
+
+    if (agendamento.status !== StatusAgendamento.SOLICITADO) {
+      throw new BadRequestException('Agendamento não está pendente');
+    }
+
+    if (agendamento.local.donoId !== userId) {
+      throw new ForbiddenException('Você não pode recusar este agendamento');
+    }
+
+    agendamento.status = StatusAgendamento.RECUSADO;
+
+    return this.agRepo.save(agendamento);
   }
 
   //Jogador
@@ -269,10 +349,10 @@ export class AgendamentosService {
         const avaliacao =
           r.avaliacaoId != null
             ? {
-                id: Number(r.avaliacaoId),
-                nota: Number(r.avaliacaoNota),
-                comentario: r.avaliacaoComentario ?? null,
-              }
+              id: Number(r.avaliacaoId),
+              nota: Number(r.avaliacaoNota),
+              comentario: r.avaliacaoComentario ?? null,
+            }
             : null;
 
         return {
@@ -292,16 +372,35 @@ export class AgendamentosService {
     );
 
     const proximos = cards
-      .filter((c) => c.status === StatusAgendamento.CONFIRMADO && c.isFuturo)
-      .sort((a, b) => (a.data + a.inicio).localeCompare(b.data + b.inicio)); // crescente
+      .filter(
+        (c) =>
+          c.isFuturo &&
+          (c.status === StatusAgendamento.CONFIRMADO ||
+            c.status === StatusAgendamento.SOLICITADO),
+      )
+      .sort((a, b) => (a.data + a.inicio).localeCompare(b.data + b.inicio));
 
     const historico = cards
-      .filter((c) => c.status === StatusAgendamento.CANCELADO || !c.isFuturo)
-      .sort((a, b) => (b.data + b.inicio).localeCompare(a.data + a.inicio)); // decrescente
+      .filter(
+        (c) =>
+          c.status === StatusAgendamento.CANCELADO ||
+          !c.isFuturo,
+      )
+      .sort((a, b) => (b.data + b.inicio).localeCompare(a.data + a.inicio));
 
     return {
       proximos: proximos.map(({ isFuturo, ...rest }) => rest),
       historico: historico.map(({ isFuturo, ...rest }) => rest),
     };
   }
+}
+
+function agendamentoJaPassou(data: string, inicio: string): boolean {
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const [hora, minuto] = inicio.split(':').map(Number);
+
+  const dataAgendamento = new Date(ano, mes - 1, dia, hora, minuto);
+  const agora = new Date();
+
+  return dataAgendamento <= agora;
 }

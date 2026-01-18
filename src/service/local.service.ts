@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -114,6 +115,21 @@ export class LocalService {
     tipos: string;
     periodos?: string;
   }) {
+    if (filtro.data) {
+      const dataSelecionada = new Date(`${filtro.data}T00:00:00`);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      if (isNaN(dataSelecionada.getTime())) {
+        throw new BadRequestException('Data inválida');
+      }
+
+      if (dataSelecionada < hoje) {
+        throw new BadRequestException(
+          'A data selecionada já passou.',
+        );
+      }
+    }
     const qb = this.localRepository.createQueryBuilder('local');
 
     qb.where('local.cidade ILIKE :cidade', { cidade: `%${filtro.cidade}%` });
@@ -133,14 +149,12 @@ export class LocalService {
 
     const { entities, raw } = await qb.getRawAndEntities();
 
-    // agregados
     const base = entities.map((local, idx) => ({
       ...local,
       rating: Number(raw[idx]?.rating ?? 0),
       totalAvaliacoes: Number(raw[idx]?.totalAvaliacoes ?? 0),
     }));
 
-    // Se não veio data, devolve sem slots
     if (!filtro.data) {
       return base.map((l) => ({ ...l, slotsDisponiveis: [] }));
     }
@@ -185,7 +199,6 @@ export class LocalService {
       ocupadosMap.get(ag.localId)!.add(hhmm);
     }
 
-    // 3) Montar slots por local
     return base.map((local) => {
       const hf = horarioMap.get(local.id);
 
@@ -193,19 +206,17 @@ export class LocalService {
       if (hf?.aberto && hf.inicio && hf.fim) {
         slots = buildHourlySlots(hf.inicio, hf.fim);
 
-        // remove ocupados
         const ocupados = ocupadosMap.get(local.id);
         if (ocupados?.size) {
           slots = slots.filter((s) => !ocupados.has(s));
         }
 
-        // aplica filtros de período, se existirem
         slots = filterByPeriodos(slots, filtro.periodos);
       }
 
       return {
         ...local,
-        slotsDisponiveis: slots,
+        horarios: slots,
       };
     });
   }
