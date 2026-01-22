@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CreateAvaliacaoDto } from "src/classes/dto/agendamento/create-avaliacao.dto";
-import { Agendamento, StatusAgendamento } from "src/classes/entity/agendamento.entity";
-import { AvaliacaoLocal } from "src/classes/entity/avaliacao-local.entity";
+import { CreateAvaliacaoDto } from "src/avaliacao/dto/create-avaliacao.dto";
+import { Agendamento, StatusAgendamento } from "src/agendamentos/agendamento.entity";
+import { AvaliacaoLocal } from "src/avaliacao/avaliacao-local.entity";
 import { Repository } from "typeorm";
 
 @Injectable()

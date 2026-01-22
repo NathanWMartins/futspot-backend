@@ -5,7 +5,7 @@ import {
     OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Local } from './local.entity';
+import { Local } from '../local/local.entity';
 
 export type TipoUsuario = 'jogador' | 'locador';
 

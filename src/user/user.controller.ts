@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Post, Put, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { UpdateUserDto } from "src/classes/dto/user/update-user.dto";
-import { UserService } from "src/service/user.service";
+import { UpdateUserDto } from "src/user/dto/update-user.dto";
+import { UserService } from "src/user/user.service";
 
 @Controller("user")
 @UseGuards(AuthGuard("jwt"))

@@ -5,20 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UpdateUserDto } from 'src/classes/dto/user/update-user.dto';
-import { User } from 'src/classes/entity/user.entity';
+import { UpdateUserDto } from 'src/user/dto/update-user.dto';
+import { User } from 'src/user/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   Agendamento,
   StatusAgendamento,
-} from 'src/classes/entity/agendamento.entity';
+} from 'src/agendamentos/agendamento.entity';
 import {
   JogadorStatsResponse,
   LocadorStatsResponse,
-} from 'src/classes/dto/user/user-stats.dto';
-import { Local } from 'src/classes/entity/local.entity';
+} from 'src/user/dto/user-stats.dto';
+import { Local } from 'src/local/local.entity';
 
 @Injectable()
 export class UserService {

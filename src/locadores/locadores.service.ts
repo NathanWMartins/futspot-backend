@@ -8,10 +8,10 @@ import {
   Agendamento,
   CanceladoPor,
   StatusAgendamento,
-} from 'src/classes/entity/agendamento.entity';
-import { AvaliacaoLocal } from 'src/classes/entity/avaliacao-local.entity';
-import { Local } from 'src/classes/entity/local.entity';
-import { User } from 'src/classes/entity/user.entity';
+} from 'src/agendamentos/agendamento.entity';
+import { AvaliacaoLocal } from 'src/avaliacao/avaliacao-local.entity';
+import { Local } from 'src/local/local.entity';
+import { User } from 'src/user/user.entity';
 import { Repository } from 'typeorm';
 
 type OcupacaoItem = {

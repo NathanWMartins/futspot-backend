@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
-import { Local } from "./local.entity";
+import { Local } from "../local/local.entity";
 
 export enum DiaSemana {
     DOM = 0,

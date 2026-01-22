@@ -6,8 +6,8 @@ import {
     OneToMany,
     PrimaryGeneratedColumn,
 } from "typeorm";
-import { User } from "./user.entity";
-import { HorarioFuncionamento } from "./horario-funcionamento.entity";
+import { User } from "../user/user.entity";
+import { HorarioFuncionamento } from "../agendamentos/horario-funcionamento.entity";
 
 export type TipoLocal = 'society' | 'futsal' | 'campo';
 

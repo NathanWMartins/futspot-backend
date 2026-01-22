@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { LocadoresService } from 'src/service/locadores.service';
+import { LocadoresService } from 'src/locadores/locadores.service';
 
 @Controller('locadores')
 @UseGuards(AuthGuard('jwt'))

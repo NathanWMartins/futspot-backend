@@ -9,9 +9,9 @@ import {
   Unique,
   Index,
 } from "typeorm";
-import { Local } from "./local.entity";
-import { User } from "./user.entity";
-import { Agendamento } from "./agendamento.entity";
+import { Local } from "../local/local.entity";
+import { User } from "../user/user.entity";
+import { Agendamento } from "../agendamentos/agendamento.entity";
 
 @Entity("avaliacoes_locais")
 @Unique("UQ_avaliacao_agendamento", ["agendamentoId"]) 

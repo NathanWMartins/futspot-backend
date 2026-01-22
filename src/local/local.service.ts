@@ -6,14 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateLocalDto } from 'src/classes/dto/local/create-local.dto';
-import { UpdateLocalDto } from 'src/classes/dto/local/update-local.dto';
+import { CreateLocalDto } from 'src/local/dto/create-local.dto';
+import { UpdateLocalDto } from 'src/local/dto/update-local.dto';
 import {
   Agendamento,
   StatusAgendamento,
-} from 'src/classes/entity/agendamento.entity';
-import { HorarioFuncionamento } from 'src/classes/entity/horario-funcionamento.entity';
-import { Local } from 'src/classes/entity/local.entity';
+} from 'src/agendamentos/agendamento.entity';
+import { HorarioFuncionamento } from 'src/agendamentos/horario-funcionamento.entity';
+import { Local } from 'src/local/local.entity';
 import {
   buildHourlySlots,
   filterByPeriodos,

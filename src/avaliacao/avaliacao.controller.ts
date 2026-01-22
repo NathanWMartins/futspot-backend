@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { CreateAvaliacaoDto } from "src/classes/dto/agendamento/create-avaliacao.dto";
-import { AvaliacaoService } from "src/service/avaliacao.service";
+import { CreateAvaliacaoDto } from "src/avaliacao/dto/create-avaliacao.dto";
+import { AvaliacaoService } from "src/avaliacao/avaliacao.service";
 
 @Controller("avaliacoes")
 @UseGuards(AuthGuard("jwt"))

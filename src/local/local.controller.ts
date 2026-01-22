@@ -14,9 +14,9 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { AgendamentosService } from "src/agendamentos/agendamentos.service";
-import { CreateLocalDto } from "src/classes/dto/local/create-local.dto";
-import { UpdateLocalDto } from "src/classes/dto/local/update-local.dto";
-import { LocalService } from "src/service/local.service";
+import { CreateLocalDto } from "src/local/dto/create-local.dto";
+import { UpdateLocalDto } from "src/local/dto/update-local.dto";
+import { LocalService } from "src/local/local.service";
 
 @Controller("locais")
 @UseGuards(AuthGuard("jwt"))

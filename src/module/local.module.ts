@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { HorarioFuncionamento } from "src/classes/entity/horario-funcionamento.entity";
-import { Local } from "src/classes/entity/local.entity";
-import { LocalController } from "src/controller/local.controller";
-import { LocalService } from "src/service/local.service";
+import { HorarioFuncionamento } from "src/agendamentos/horario-funcionamento.entity";
+import { Local } from "src/local/local.entity";
+import { LocalController } from "src/local/local.controller";
+import { LocalService } from "src/local/local.service";
 import { AgendamentosModule } from "./agendamentos.module";
-import { Agendamento } from "src/classes/entity/agendamento.entity";
-import { User } from "src/classes/entity/user.entity";
+import { Agendamento } from "src/agendamentos/agendamento.entity";
+import { User } from "src/user/user.entity";
 
 @Module({
     imports: [TypeOrmModule.forFeature([Local, HorarioFuncionamento, Agendamento, User]), AgendamentosModule],

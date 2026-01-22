@@ -7,14 +7,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { CreateAgendamentoDto } from '../classes/dto/agendamento/create-agendamento.dto';
+import { CreateAgendamentoDto } from './dto/create-agendamento.dto';
 import {
   Agendamento,
   CanceladoPor,
   StatusAgendamento,
-} from 'src/classes/entity/agendamento.entity';
-import { Local } from 'src/classes/entity/local.entity';
-import { HorarioFuncionamento } from 'src/classes/entity/horario-funcionamento.entity';
+} from 'src/agendamentos/agendamento.entity';
+import { Local } from 'src/local/local.entity';
+import { HorarioFuncionamento } from 'src/agendamentos/horario-funcionamento.entity';
 
 function timeToMinutes(t: string) {
   const [hh, mm] = t.split(':').map(Number);

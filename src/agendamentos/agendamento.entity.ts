@@ -6,8 +6,8 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn,
 } from "typeorm";
-import { Local } from "./local.entity";
-import { User } from "./user.entity";
+import { Local } from "../local/local.entity";
+import { User } from "../user/user.entity";
 
 export enum StatusAgendamento {
     CONFIRMADO = "confirmado",
