@@ -15,6 +15,9 @@ import {
 } from 'src/agendamentos/agendamento.entity';
 import { Local } from 'src/local/local.entity';
 import { HorarioFuncionamento } from 'src/agendamentos/horario-funcionamento.entity';
+import { NotificacaoService } from 'src/notificacao/notificacao.service';
+import { DataSource } from 'typeorm';
+import { TipoNotificacao } from 'src/notificacao/enum/notificacao.enum';
 
 function timeToMinutes(t: string) {
   const [hh, mm] = t.split(':').map(Number);
@@ -56,12 +59,15 @@ export class AgendamentosService {
 
     @InjectRepository(HorarioFuncionamento)
     private readonly horarioRepo: Repository<HorarioFuncionamento>,
-  ) { }
+
+    private readonly notificacaoService: NotificacaoService,
+    private readonly dataSource: DataSource,
+  ) {}
 
   private validarAgendamentoNaoExpirado(ag: Agendamento) {
     if (agendamentoJaPassou(ag.data, ag.inicio)) {
       throw new BadRequestException(
-        'Não é possível alterar um agendamento que já ocorreu ou está em andamento.'
+        'Não é possível alterar um agendamento que já ocorreu ou está em andamento.',
       );
     }
   }
@@ -83,7 +89,6 @@ export class AgendamentosService {
 
     const inicioMin = timeToMinutes(inicio);
     const fimMin = inicioMin + 60;
-    const fim = minutesToTime(fimMin);
 
     const rangeStart = timeToMinutes(horario.inicio ?? '00:00');
     const rangeEnd = timeToMinutes(horario.fim ?? '00:00');
@@ -101,17 +106,29 @@ export class AgendamentosService {
     });
     if (existing) throw new ConflictException('Horário já reservado.');
 
-    const ag = this.agRepo.create({
-      localId: dto.localId,
-      jogadorId,
-      data: dto.data,
-      inicio: inicio,
-      status: StatusAgendamento.SOLICITADO,
-      valorPagar: local.precoHora,
-    });
-
     try {
-      return await this.agRepo.save(ag);
+      return await this.dataSource.transaction(async (manager) => {
+        const agendamento = manager.create(Agendamento, {
+          localId: dto.localId,
+          jogadorId,
+          data: dto.data,
+          inicio,
+          status: StatusAgendamento.SOLICITADO,
+          valorPagar: local.precoHora,
+        });
+
+        const agSalvo = await manager.save(agendamento);
+
+        await this.notificacaoService.criar(manager, {
+          usuarioId: local.donoId,
+          agendamentoId: agSalvo.id,
+          tipo: TipoNotificacao.AGENDAMENTO_SOLICITADO,
+          titulo: 'Novo pedido de agendamento',
+          mensagem: 'Um jogador solicitou o agendamento do seu local',
+        });
+
+        return agSalvo;
+      });
     } catch (e: any) {
       if (e?.code === '23505') {
         throw new ConflictException('Horário já reservado.');
@@ -121,37 +138,52 @@ export class AgendamentosService {
   }
 
   async cancelarAgendamento(userId: number, agendamentoId: number) {
-    const ag = await this.agRepo.findOne({
-      where: { id: agendamentoId },
-      relations: ['local'],
+    return this.dataSource.transaction(async (manager) => {
+      const ag = await manager.findOne(Agendamento, {
+        where: { id: agendamentoId },
+        relations: ['local'],
+      });
+
+      if (!ag) {
+        throw new NotFoundException('Agendamento não encontrado.');
+      }
+
+      this.validarAgendamentoNaoExpirado(ag);
+
+      if (ag.status === StatusAgendamento.CANCELADO) {
+        throw new BadRequestException('Este agendamento já foi cancelado.');
+      }
+
+      const isJogador = ag.jogadorId === userId;
+      const isDonoLocal = ag.local?.donoId === userId;
+
+      if (!isJogador && !isDonoLocal) {
+        throw new ForbiddenException(
+          'Você não pode cancelar este agendamento.',
+        );
+      }
+
+      ag.status = StatusAgendamento.CANCELADO;
+      ag.canceladoPor = isJogador
+        ? CanceladoPor.JOGADOR
+        : CanceladoPor.DONO_QUADRA;
+
+      const agSalvo = await manager.save(ag);
+
+      const usuarioNotificado = isJogador ? ag.local.donoId : ag.jogadorId;
+
+      await this.notificacaoService.criar(manager, {
+        usuarioId: usuarioNotificado,
+        agendamentoId: agSalvo.id,
+        tipo: TipoNotificacao.AGENDAMENTO_CANCELADO,
+        titulo: 'Agendamento cancelado',
+        mensagem: isJogador
+          ? 'O jogador cancelou o agendamento do seu local.'
+          : 'O locador cancelou o seu agendamento.',
+      });
+
+      return agSalvo;
     });
-
-    if (!ag) {
-      throw new NotFoundException('Agendamento não encontrado.');
-    }
-
-    this.validarAgendamentoNaoExpirado(ag);
-
-    if (ag.status === StatusAgendamento.CANCELADO) {
-      throw new BadRequestException('Este agendamento já foi cancelado.');
-    }
-
-    const isJogador = ag.jogadorId === userId;
-    const isDonoLocal = ag.local?.donoId === userId;
-
-    if (!isJogador && !isDonoLocal) {
-      throw new ForbiddenException('Você não pode cancelar este agendamento.');
-    }
-
-    ag.status = StatusAgendamento.CANCELADO;
-
-    if (isJogador) {
-      ag.canceladoPor = CanceladoPor.JOGADOR;
-    } else if (isDonoLocal) {
-      ag.canceladoPor = CanceladoPor.DONO_QUADRA;
-    }
-
-    return this.agRepo.save(ag);
   }
 
   async listarPorLocalEData(localId: number, data: string) {
@@ -226,11 +258,11 @@ export class AgendamentosService {
         agendamentoId: ag.id,
         jogador: ag.jogador
           ? {
-            id: ag.jogador.id,
-            nome: ag.jogador.nome,
-            email: ag.jogador.email,
-            fotoUrl: ag.jogador.fotoUrl,
-          }
+              id: ag.jogador.id,
+              nome: ag.jogador.nome,
+              email: ag.jogador.email,
+              fotoUrl: ag.jogador.fotoUrl,
+            }
           : undefined,
       });
     }
@@ -239,53 +271,79 @@ export class AgendamentosService {
   }
 
   async confirmarAgendamento(userId: number, agendamentoId: number) {
-    const agendamento = await this.agRepo.findOne({
-      where: { id: agendamentoId },
-      relations: { local: true },
+    return this.dataSource.transaction(async (manager) => {
+      const agendamento = await manager.findOne(Agendamento, {
+        where: { id: agendamentoId },
+        relations: { local: true },
+      });
+
+      if (!agendamento) {
+        throw new NotFoundException('Agendamento não encontrado');
+      }
+
+      this.validarAgendamentoNaoExpirado(agendamento);
+
+      if (agendamento.status !== StatusAgendamento.SOLICITADO) {
+        throw new BadRequestException('Agendamento não está pendente');
+      }
+
+      if (agendamento.local.donoId !== userId) {
+        throw new ForbiddenException(
+          'Você não pode confirmar este agendamento',
+        );
+      }
+
+      agendamento.status = StatusAgendamento.CONFIRMADO;
+
+      const agSalvo = await manager.save(agendamento);
+
+      await this.notificacaoService.criar(manager, {
+        usuarioId: agSalvo.jogadorId,
+        agendamentoId: agSalvo.id,
+        tipo: TipoNotificacao.AGENDAMENTO_ACEITO,
+        titulo: 'Agendamento confirmado',
+        mensagem: 'Seu agendamento foi confirmado pelo locador.',
+      });
+
+      return agSalvo;
     });
-
-    if (!agendamento) {
-      throw new NotFoundException('Agendamento não encontrado');
-    }
-
-    this.validarAgendamentoNaoExpirado(agendamento);
-
-    if (agendamento.status !== StatusAgendamento.SOLICITADO) {
-      throw new BadRequestException('Agendamento não está pendente');
-    }
-
-    if (agendamento.local.donoId !== userId) {
-      throw new ForbiddenException('Você não pode confirmar este agendamento');
-    }
-
-    agendamento.status = StatusAgendamento.CONFIRMADO;
-
-    return this.agRepo.save(agendamento);
   }
 
   async recusarAgendamento(userId: number, agendamentoId: number) {
-    const agendamento = await this.agRepo.findOne({
-      where: { id: agendamentoId },
-      relations: { local: true },
+    return this.dataSource.transaction(async (manager) => {
+      const agendamento = await manager.findOne(Agendamento, {
+        where: { id: agendamentoId },
+        relations: { local: true },
+      });
+
+      if (!agendamento) {
+        throw new NotFoundException('Agendamento não encontrado');
+      }
+
+      this.validarAgendamentoNaoExpirado(agendamento);
+
+      if (agendamento.status !== StatusAgendamento.SOLICITADO) {
+        throw new BadRequestException('Agendamento não está pendente');
+      }
+
+      if (agendamento.local.donoId !== userId) {
+        throw new ForbiddenException('Você não pode recusar este agendamento');
+      }
+
+      agendamento.status = StatusAgendamento.RECUSADO;
+
+      const agSalvo = await manager.save(agendamento);
+
+      await this.notificacaoService.criar(manager, {
+        usuarioId: agSalvo.jogadorId,
+        agendamentoId: agSalvo.id,
+        tipo: TipoNotificacao.AGENDAMENTO_RECUSADO,
+        titulo: 'Agendamento recusado',
+        mensagem: 'O dono do local recusou seu pedido de agendamento.',
+      });
+
+      return agSalvo;
     });
-
-    if (!agendamento) {
-      throw new NotFoundException('Agendamento não encontrado');
-    }
-
-    this.validarAgendamentoNaoExpirado(agendamento);
-
-    if (agendamento.status !== StatusAgendamento.SOLICITADO) {
-      throw new BadRequestException('Agendamento não está pendente');
-    }
-
-    if (agendamento.local.donoId !== userId) {
-      throw new ForbiddenException('Você não pode recusar este agendamento');
-    }
-
-    agendamento.status = StatusAgendamento.RECUSADO;
-
-    return this.agRepo.save(agendamento);
   }
 
   //Jogador
@@ -349,10 +407,10 @@ export class AgendamentosService {
         const avaliacao =
           r.avaliacaoId != null
             ? {
-              id: Number(r.avaliacaoId),
-              nota: Number(r.avaliacaoNota),
-              comentario: r.avaliacaoComentario ?? null,
-            }
+                id: Number(r.avaliacaoId),
+                nota: Number(r.avaliacaoNota),
+                comentario: r.avaliacaoComentario ?? null,
+              }
             : null;
 
         return {
@@ -381,11 +439,7 @@ export class AgendamentosService {
       .sort((a, b) => (a.data + a.inicio).localeCompare(b.data + b.inicio));
 
     const historico = cards
-      .filter(
-        (c) =>
-          c.status === StatusAgendamento.CANCELADO ||
-          !c.isFuturo,
-      )
+      .filter((c) => c.status === StatusAgendamento.CANCELADO || !c.isFuturo)
       .sort((a, b) => (b.data + b.inicio).localeCompare(a.data + a.inicio));
 
     return {

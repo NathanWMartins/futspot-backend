@@ -13,6 +13,7 @@ import { AgendamentosModule } from './module/agendamentos.module';
 import { LocadoresModule } from './module/locadores.module';
 import { UserModule } from './module/user.module';
 import { AvaliacaoModule } from './module/avaliacao.module';
+import { NotificacaoModule } from './module/notificacao.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AvaliacaoModule } from './module/avaliacao.module';
     AvaliacaoModule,
     AgendamentosModule,
     LocadoresModule,
+    NotificacaoModule,
     UploadsModule,
     AuthModule,
     LocalModule

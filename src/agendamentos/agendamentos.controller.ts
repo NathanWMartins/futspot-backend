@@ -33,7 +33,7 @@ export class AgendamentosController {
 
   @Patch(':id/confirmar')
   confirmar(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
-    const userId = req.user.sub;
+    const userId = req.user?.sub;
     return this.service.confirmarAgendamento(userId, id);
   }
 
