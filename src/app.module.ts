@@ -19,15 +19,11 @@ import { NotificacaoModule } from './module/notificacao.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
-      type: "postgres",
+      type: 'postgres',
       url: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: false },
       extra: {
-        ssl: process.env.NODE_ENV === "production"
-          ? { rejectUnauthorized: true }
-          : { rejectUnauthorized: false },
+        ssl: { rejectUnauthorized: false },
       },
       synchronize: true,
       autoLoadEntities: true,
@@ -39,9 +35,9 @@ import { NotificacaoModule } from './module/notificacao.module';
     NotificacaoModule,
     UploadsModule,
     AuthModule,
-    LocalModule
+    LocalModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
