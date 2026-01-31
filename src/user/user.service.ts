@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   Agendamento,
+  CanceladoPor,
   StatusAgendamento,
 } from 'src/agendamentos/agendamento.entity';
 import {
@@ -19,6 +20,7 @@ import {
   LocadorStatsResponse,
 } from 'src/user/dto/user-stats.dto';
 import { Local } from 'src/local/local.entity';
+import { AvaliacaoLocal } from 'src/avaliacao/avaliacao-local.entity';
 
 @Injectable()
 export class UserService {
@@ -34,6 +36,9 @@ export class UserService {
 
     @InjectRepository(Local)
     private readonly localRepository: Repository<Local>,
+
+    @InjectRepository(AvaliacaoLocal)
+    private readonly avaliacaoRepository: Repository<AvaliacaoLocal>,
   ) {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -117,9 +122,45 @@ export class UserService {
       where: { id: userId },
       select: ['id', 'createdAt'],
     });
-    if (!user) throw new NotFoundException('Usuário não encontrado.');
 
-    const raw = await this.agendamentoRepository
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    const ags = await this.agendamentoRepository
+      .createQueryBuilder('ag')
+      .where('ag.jogadorId = :userId', { userId })
+      .andWhere('ag.status IN (:...status)', {
+        status: [StatusAgendamento.CONFIRMADO, StatusAgendamento.CANCELADO],
+      })
+      .getMany();
+
+    const totalAgendamentos = ags.length;
+
+    const totalCancelados = ags.filter(
+      (a) =>
+        a.status === StatusAgendamento.CANCELADO &&
+        a.canceladoPor === CanceladoPor.JOGADOR,
+    ).length;
+
+    const taxaCancelamento =
+      totalAgendamentos === 0
+        ? 0
+        : Math.round((totalCancelados / totalAgendamentos) * 100);
+
+    let comportamento: JogadorStatsResponse['comportamento'];
+
+    if (taxaCancelamento === 0) {
+      comportamento = 'Nunca cancelou';
+    } else if (taxaCancelamento <= 10) {
+      comportamento = 'Raramente cancela';
+    } else if (taxaCancelamento <= 30) {
+      comportamento = 'Às vezes cancela';
+    } else {
+      comportamento = 'Cancela com frequência';
+    }
+
+    const rawReservas = await this.agendamentoRepository
       .createQueryBuilder('ag')
       .select('COUNT(ag.id)', 'totalReservas')
       .addSelect('COUNT(DISTINCT ag.localId)', 'locaisDiferentes')
@@ -127,10 +168,31 @@ export class UserService {
       .andWhere('ag.status = :st', { st: StatusAgendamento.CONFIRMADO })
       .getRawOne();
 
+    const avaliacoes = await this.avaliacaoRepository
+      .createQueryBuilder('av')
+      .where('av.jogadorId = :userId', { userId })
+      .select('av.nota', 'nota')
+      .getRawMany();
+
+    const totalAvaliacoes = avaliacoes.length;
+
+    const mediaAvaliacoes =
+      totalAvaliacoes === 0
+        ? null
+        : Number(
+            (
+              avaliacoes.reduce((sum, a) => sum + Number(a.nota), 0) /
+              totalAvaliacoes
+            ).toFixed(1),
+          );
     return {
       createdAt: user.createdAt.toISOString(),
-      totalReservas: Number(raw?.totalReservas ?? 0),
-      locaisDiferentes: Number(raw?.locaisDiferentes ?? 0),
+      totalReservas: Number(rawReservas?.totalReservas ?? 0),
+      locaisDiferentes: Number(rawReservas?.locaisDiferentes ?? 0),
+      comportamento,
+      mediaAvaliacoes,
+      totalAvaliacoes,
+      taxaCancelamento,
     };
   }
 
@@ -148,7 +210,7 @@ export class UserService {
       where: { donoId: userId },
     });
 
-    const raw = await this.agendamentoRepository
+    const reservasRaw = await this.agendamentoRepository
       .createQueryBuilder('ag')
       .innerJoin('ag.local', 'l')
       .select('COUNT(ag.id)', 'totalReservas')
@@ -157,11 +219,73 @@ export class UserService {
       .andWhere('ag.status = :st', { st: StatusAgendamento.CONFIRMADO })
       .getRawOne();
 
+    const totalReservas = Number(reservasRaw?.totalReservas ?? 0);
+    const totalFaturamento = Number(reservasRaw?.totalFaturamento ?? 0);
+
+    const ags = await this.agendamentoRepository
+      .createQueryBuilder('ag')
+      .innerJoin('ag.local', 'l')
+      .where('l.donoId = :userId', { userId })
+      .andWhere('ag.status = :st', { st: StatusAgendamento.CANCELADO })
+      .andWhere('ag.canceladoPor = :cp', {
+        cp: CanceladoPor.DONO_QUADRA,
+      })
+      .getMany();
+
+    const totalAgendamentos = await this.agendamentoRepository
+      .createQueryBuilder('ag')
+      .innerJoin('ag.local', 'l')
+      .where('l.donoId = :userId', { userId })
+      .getCount();
+
+    const totalCancelados = ags.length;
+
+    const taxaCancelamento =
+      totalAgendamentos === 0
+        ? 0
+        : Math.round((totalCancelados / totalAgendamentos) * 100);
+
+    let comportamento: LocadorStatsResponse['comportamento'];
+
+    if (taxaCancelamento === 0) {
+      comportamento = 'Nunca cancelou';
+    } else if (taxaCancelamento <= 10) {
+      comportamento = 'Raramente cancela';
+    } else if (taxaCancelamento <= 30) {
+      comportamento = 'Às vezes cancela';
+    } else {
+      comportamento = 'Cancela com frequência';
+    }
+
+    const avaliacoes = await this.avaliacaoRepository
+      .createQueryBuilder('av')
+      .innerJoin('av.local', 'l')
+      .where('l.donoId = :userId', { userId })
+      .select('av.nota', 'nota')
+      .getRawMany();
+
+    const totalAvaliacoes = avaliacoes.length;
+
+    const mediaAvaliacoes =
+      totalAvaliacoes === 0
+        ? null
+        : Number(
+            (
+              avaliacoes.reduce((sum, a) => sum + Number(a.nota), 0) /
+              totalAvaliacoes
+            ).toFixed(1),
+          );
+
     return {
       createdAt: user.createdAt.toISOString(),
       totalQuadras,
-      totalReservas: Number(raw?.totalReservas ?? 0),
-      totalFaturamento: Number(raw?.totalFaturamento ?? 0),
+      locaisCadastrados: totalQuadras,
+      totalReservas,
+      totalFaturamento,
+      comportamento,
+      mediaAvaliacoes,
+      totalAvaliacoes,
+      taxaCancelamento
     };
   }
 }
