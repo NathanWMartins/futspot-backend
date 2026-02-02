@@ -14,6 +14,7 @@ import { LocadoresModule } from './module/locadores.module';
 import { UserModule } from './module/user.module';
 import { AvaliacaoModule } from './module/avaliacao.module';
 import { NotificacaoModule } from './module/notificacao.module';
+import { MensalidadesModule } from './module/mensalidades.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NotificacaoModule } from './module/notificacao.module';
     UploadsModule,
     AuthModule,
     LocalModule,
+    MensalidadesModule
   ],
   controllers: [AppController],
   providers: [AppService],
