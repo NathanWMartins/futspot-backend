@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Mensalidade } from './mensalidade.entity';
@@ -13,6 +17,19 @@ export class MensalidadesService {
   ) {}
 
   async create(dto: CreateMensalidadeDto) {
+    if (
+      !dto.nomeResponsavel?.trim() ||
+      !dto.cpf?.trim() ||
+      !dto.celular?.trim() ||
+      dto.diaSemana === undefined ||
+      !dto.horaInicio?.trim() ||
+      dto.valor === undefined
+    ) {
+      throw new BadRequestException(
+        'Todos os campos obrigatórios devem ser preenchidos',
+      );
+    }
+
     const cpfJaExiste = await this.repo.findOne({
       where: { cpf: dto.cpf },
     });
@@ -22,6 +39,7 @@ export class MensalidadesService {
         'Já existe uma mensalidade cadastrada com este CPF',
       );
     }
+
     const mensalidade = this.repo.create(dto);
     return this.repo.save(mensalidade);
   }

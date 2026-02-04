@@ -23,6 +23,7 @@ import {
   normalizeHHMM,
 } from 'src/utils/date-time';
 import { In, Repository } from 'typeorm';
+import { Mensalidade } from 'src/mensalidade/mensalidade.entity';
 
 @Injectable()
 export class LocalService {
@@ -35,6 +36,9 @@ export class LocalService {
 
     @InjectRepository(Agendamento)
     private readonly agendamentoRepository: Repository<Agendamento>,
+
+    @InjectRepository(Mensalidade)
+    private readonly mensalidadeRepository: Repository<Mensalidade>,
   ) {}
 
   async listarPorDono(donoId: number) {
@@ -125,9 +129,7 @@ export class LocalService {
       }
 
       if (dataSelecionada < hoje) {
-        throw new BadRequestException(
-          'A data selecionada já passou.',
-        );
+        throw new BadRequestException('A data selecionada já passou.');
       }
     }
     const qb = this.localRepository.createQueryBuilder('local');
@@ -245,7 +247,17 @@ export class LocalService {
       select: ['inicio'],
     });
 
-    const ocupados = new Set(ags.map((a) => normalizeHHMM(a.inicio)));
+    const mensalidades = await this.mensalidadeRepository.find({
+      where: { localId, diaSemana },
+      select: ['horaInicio'],
+    });
+
+    const ocupados = new Set<string>();
+
+    ags.forEach((a) => ocupados.add(normalizeHHMM(a.inicio)));
+
+    mensalidades.forEach((m) => ocupados.add(normalizeHHMM(m.horaInicio)));
+
     slots = slots.filter((s) => !ocupados.has(s));
 
     const hoje = hojeYYYYMMDDLocal();
