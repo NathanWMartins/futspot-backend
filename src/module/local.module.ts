@@ -7,9 +7,10 @@ import { LocalService } from "src/local/local.service";
 import { AgendamentosModule } from "./agendamentos.module";
 import { Agendamento } from "src/agendamentos/agendamento.entity";
 import { User } from "src/user/user.entity";
+import { Mensalidade } from "src/mensalidade/mensalidade.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Local, HorarioFuncionamento, Agendamento, User]), AgendamentosModule],
+    imports: [TypeOrmModule.forFeature([Local, HorarioFuncionamento, Agendamento, User, Mensalidade]), AgendamentosModule],
     controllers: [LocalController],
     providers: [LocalService],
 })
