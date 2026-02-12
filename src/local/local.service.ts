@@ -12,7 +12,7 @@ import {
   Agendamento,
   StatusAgendamento,
 } from 'src/agendamentos/agendamento.entity';
-import { HorarioFuncionamento } from 'src/agendamentos/horario-funcionamento.entity';
+import { HorarioFuncionamento } from 'src/local/horario-funcionamento.entity';
 import { Local } from 'src/local/local.entity';
 import {
   buildHourlySlots,
@@ -62,7 +62,20 @@ export class LocalService {
       donoId,
     });
 
-    return this.localRepository.save(local);
+    const savedLocal = await this.localRepository.save(local);
+
+    if (dto.horarios?.length) {
+      const horarios = dto.horarios.map((h) =>
+        this.horarioRepo.create({
+          ...h,
+          localId: savedLocal.id,
+        }),
+      );
+
+      await this.horarioRepo.save(horarios);
+    }
+
+    return savedLocal;
   }
 
   async atualizar(donoId: number, localId: number, dto: UpdateLocalDto) {
