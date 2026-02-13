@@ -12,7 +12,6 @@ import {
   Agendamento,
   StatusAgendamento,
 } from 'src/agendamentos/agendamento.entity';
-import { HorarioFuncionamento } from 'src/local/horario-funcionamento.entity';
 import { Local } from 'src/local/local.entity';
 import {
   buildHourlySlots,
@@ -24,6 +23,7 @@ import {
 } from 'src/utils/date-time';
 import { In, Repository } from 'typeorm';
 import { Mensalidade } from 'src/mensalidade/mensalidade.entity';
+import { HorarioFuncionamento } from './horario-funcionamento.entity';
 
 @Injectable()
 export class LocalService {
