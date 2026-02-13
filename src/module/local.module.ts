@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { HorarioFuncionamento } from "src/agendamentos/horario-funcionamento.entity";
+import { HorarioFuncionamento } from "src/local/horario-funcionamento.entity";
 import { Local } from "src/local/local.entity";
 import { LocalController } from "src/local/local.controller";
 import { LocalService } from "src/local/local.service";

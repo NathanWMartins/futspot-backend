@@ -14,7 +14,7 @@ import {
   StatusAgendamento,
 } from 'src/agendamentos/agendamento.entity';
 import { Local } from 'src/local/local.entity';
-import { HorarioFuncionamento } from 'src/agendamentos/horario-funcionamento.entity';
+import { HorarioFuncionamento } from 'src/local/horario-funcionamento.entity';
 import { NotificacaoService } from 'src/notificacao/notificacao.service';
 import { DataSource } from 'typeorm';
 import { TipoNotificacao } from 'src/notificacao/enum/notificacao.enum';
