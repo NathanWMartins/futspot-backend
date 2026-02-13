@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
-import { Local } from "../local/local.entity";
+import { Local } from "./local.entity";
 
 export enum DiaSemana {
     DOM = 0,
@@ -15,23 +15,23 @@ export enum DiaSemana {
 @Unique(["localId", "diaSemana"]) 
 export class HorarioFuncionamento {
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
     @Column({ type: "int" })
-    diaSemana: DiaSemana;
+    diaSemana!: DiaSemana;
 
     @Column({ type: "boolean", default: true })
-    aberto: boolean;
+    aberto!: boolean;
 
     @Column({ type: "time", nullable: true })
-    inicio: string | null; 
+    inicio!: string | null; 
 
     @Column({ type: "time", nullable: true })
-    fim: string | null;
+    fim!: string | null;
 
     @ManyToOne(() => Local, (local) => local.horarios, { onDelete: "CASCADE" })
-    local: Local;
+    local!: Local;
 
     @Column()
-    localId: number;
+    localId!: number;
 }

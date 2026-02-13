@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../user/user.entity';
-import { HorarioFuncionamento } from '../agendamentos/horario-funcionamento.entity';
+import { HorarioFuncionamento } from './horario-funcionamento.entity';
 import { Mensalidade } from 'src/mensalidade/mensalidade.entity';
 
 export type TipoLocal = 'society' | 'futsal' | 'campo';
@@ -15,48 +15,48 @@ export type TipoLocal = 'society' | 'futsal' | 'campo';
 @Entity('locais')
 export class Local {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  nome: string;
+  nome!: string;
 
   @Column({ nullable: true })
   descricao?: string;
 
   @Column({ nullable: true })
-  cep: string;
+  cep!: string;
 
   @Column({ nullable: false })
-  endereco: string;
+  endereco!: string;
 
   @Column({ nullable: true })
-  cidade: string;
+  cidade!: string;
 
   @Column({ nullable: true })
-  numero: string;
+  numero!: string;
 
   @Column({ nullable: false })
-  tipoLocal: TipoLocal;
+  tipoLocal!: TipoLocal;
 
   @Column({ nullable: false })
-  precoHora: number;
+  precoHora!: number;
 
   @Column('text', { array: true, default: [] })
-  fotos: string[];
+  fotos!: string[];
 
   @OneToMany(() => HorarioFuncionamento, (h) => h.local, { cascade: true })
-  horarios: HorarioFuncionamento[];
+  horarios!: HorarioFuncionamento[];
 
   @ManyToOne(() => User, (user) => user.locais, {
     onDelete: 'CASCADE',
   })
-  dono: User;
+  dono!: User;
 
   @Column()
-  donoId: number;
+  donoId!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @OneToMany(() => Mensalidade, (mensalidade) => mensalidade.local, {nullable: true})
   mensalidades?: Mensalidade[];
