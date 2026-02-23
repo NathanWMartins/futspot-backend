@@ -10,7 +10,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:5173',
       'http://localhost:5174',
-      // 'https://futspot.vercel.app',
+      'https://futspot.vercel.app',
     ],
     credentials: true,
   });
