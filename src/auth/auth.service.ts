@@ -85,13 +85,13 @@ export class AuthService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
+      console.error('REGISTER ERROR COMPLETO:', error);
+
       if (error instanceof BadRequestException) {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Erro ao enviar e-mail. Tente novamente.',
-      );
+      throw error;
     } finally {
       await queryRunner.release();
     }
@@ -141,7 +141,6 @@ export class AuthService {
       access_token,
     };
   }
-  
 
   async login(dto: LoginDto) {
     const user = await this.userRepo.findOne({
