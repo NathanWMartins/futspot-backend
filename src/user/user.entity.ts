@@ -1,40 +1,49 @@
 import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    OneToMany,
-    PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Local } from '../local/local.entity';
 
 export type TipoUsuario = 'jogador' | 'locador';
 
-@Entity("users")
+@Entity('users')
 export class User {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    nome: string;
+  @Column()
+  nome: string;
 
-    @Column({ unique: true })
-    email: string;
+  @Column({ unique: true })
+  email: string;
 
-    @Column({ type: "varchar", nullable: true })
-    telefone?: string | null;
+  @Column({ type: 'varchar', nullable: true })
+  telefone?: string | null;
 
-    @Column()
-    senhaHash: string;
+  @Column()
+  senhaHash: string;
 
-    @Column({ type: "varchar" })
-    tipoUsuario: TipoUsuario;
+  @Column({ type: 'varchar' })
+  tipoUsuario: TipoUsuario;
 
-    @OneToMany(() => Local, (local) => local.dono, { cascade: true })
-    locais?: Local[];
+  @OneToMany(() => Local, (local) => local.dono, { cascade: true })
+  locais?: Local[];
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @Column({ nullable: true })
-    fotoUrl?: string;
+  @Column({ nullable: true })
+  fotoUrl?: string;
+
+  @Column({ default: false })
+  emailVerificado: boolean;
+
+  @Column({ nullable: true })
+  emailCodigo?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  emailCodigoExpira?: Date;
 }

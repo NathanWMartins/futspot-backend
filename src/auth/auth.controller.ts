@@ -12,6 +12,11 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Post('verify-email')
+  verifyEmail(@Body() body: { email: string; codigo: string }) {
+    return this.authService.verifyEmailCode(body.email, body.codigo);
+  }
+
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
