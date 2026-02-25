@@ -12,10 +12,12 @@ import { UserModule } from './module/user.module';
 import { AvaliacaoModule } from './module/avaliacao.module';
 import { NotificacaoModule } from './module/notificacao.module';
 import { MensalidadesModule } from './module/mensalidades.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),    
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -26,6 +28,12 @@ import { MensalidadesModule } from './module/mensalidades.module';
       synchronize: true,
       autoLoadEntities: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 5,
+      },
+    ]),
     UserModule,
     AvaliacaoModule,
     AgendamentosModule,
@@ -37,6 +45,12 @@ import { MensalidadesModule } from './module/mensalidades.module';
     MensalidadesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

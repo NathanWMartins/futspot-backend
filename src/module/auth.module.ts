@@ -9,10 +9,12 @@ import { JwtStrategy } from 'src/auth/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from './mail.module';
 import { EmailVerification } from 'src/mail/email-verification.entity';
+import { PasswordReset } from 'src/password-reset/password-reset.entity';
+import { PasswordResetService } from 'src/password-reset/password-reset.service';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, EmailVerification]),
+        TypeOrmModule.forFeature([User, EmailVerification, PasswordReset]),
         PassportModule.register({ defaultStrategy: "jwt" }),
         JwtModule.registerAsync({
             imports: [ConfigModule, MailModule],
@@ -25,7 +27,7 @@ import { EmailVerification } from 'src/mail/email-verification.entity';
         MailModule,
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
-    exports: [JwtModule, PassportModule],
+    providers: [AuthService, JwtStrategy, PasswordResetService],
+    exports: [JwtModule, PassportModule, PasswordResetService],
 })
 export class AuthModule { }
