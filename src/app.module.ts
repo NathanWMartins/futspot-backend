@@ -12,8 +12,6 @@ import { UserModule } from './module/user.module';
 import { AvaliacaoModule } from './module/avaliacao.module';
 import { NotificacaoModule } from './module/notificacao.module';
 import { MensalidadesModule } from './module/mensalidades.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -28,12 +26,6 @@ import { APP_GUARD } from '@nestjs/core';
       synchronize: true,
       autoLoadEntities: true,
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 5,
-      },
-    ]),
     UserModule,
     AvaliacaoModule,
     AgendamentosModule,
@@ -46,11 +38,7 @@ import { APP_GUARD } from '@nestjs/core';
   ],
   controllers: [AppController],
   providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    AppService,    
   ],
 })
 export class AppModule {}

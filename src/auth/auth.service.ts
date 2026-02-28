@@ -110,6 +110,8 @@ export class AuthService {
       throw new BadRequestException('Usuário não encontrado.');
     }
 
+    console.log('user code', verification?.codigo, 'input code', codigo);
+
     if (user.emailVerificado) {
       throw new BadRequestException('E-mail já verificado.');
     }
