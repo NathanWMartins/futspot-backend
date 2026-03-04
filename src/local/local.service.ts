@@ -286,4 +286,25 @@ export class LocalService {
 
     return { localId, data, slotsDisponiveis: slots };
   }
+
+  async buscarPorId(id: number) {
+    const local = await this.localRepository.findOne({
+      where: { id }      
+    });
+
+    if (!local) {
+      throw new NotFoundException('Local não encontrado.');
+    }
+
+    return {
+      id: local.id,
+      nome: local.nome,
+      endereco: local.endereco,
+      cidade: local.cidade,
+      tipoLocal: local.tipoLocal,
+      precoHora: local.precoHora,
+      descricao: local.descricao,
+      fotos: local.fotos,
+    };
+  }
 }

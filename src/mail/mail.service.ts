@@ -43,7 +43,7 @@ export class MailService {
               <a href="https://instagram.com/futspot.oficial" 
                 style="color: #00E676; text-decoration: none;" 
                 target="_blank">
-                @seu_usuario
+                @futspot.oficial
               </a>
             </p>
             <p>Não compartilhe este código com ninguém.</p>
@@ -98,7 +98,7 @@ export class MailService {
           <div style="margin-top: 40px; font-size: 12px; color: #888888; line-height: 1.5;">
             <p>FutSpot © 2026</p>
             <p>Contato: <a href="mailto:suporte@futspot.com" style="color: #00E676; text-decoration: none;">suporte@futspot.com</a></p>
-            <p>Instagram: <a href="https://instagram.com/futspot.oficial" style="color: #00E676; text-decoration: none;" target="_blank">@seu_usuario</a></p>
+            <p>Instagram: <a href="https://instagram.com/futspot.oficial" style="color: #00E676; text-decoration: none;" target="_blank">@futspot.oficial</a></p>
             <p>Se você não solicitou esta redefinição, ignore este e-mail.</p>
           </div>
 

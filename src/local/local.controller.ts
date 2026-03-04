@@ -17,6 +17,7 @@ import { AgendamentosService } from "src/agendamentos/agendamentos.service";
 import { CreateLocalDto } from "src/local/dto/create-local.dto";
 import { UpdateLocalDto } from "src/local/dto/update-local.dto";
 import { LocalService } from "src/local/local.service";
+import { Roles } from "src/roles/roles.decorator";
 
 @Controller("locais")
 @UseGuards(AuthGuard("jwt"))
@@ -31,12 +32,14 @@ export class LocalController {
     }
 
     @Post()
+    @Roles("locador")
     criar(@Req() req: any, @Body() dto: CreateLocalDto) {
         const donoId = req.user?.sub;
         return this.localService.criar(donoId, dto);
     }
 
     @Put(":id")
+    @Roles("locador")
     atualizar(
         @Req() req: any,
         @Param("id", ParseIntPipe) id: number,
@@ -64,6 +67,7 @@ export class LocalController {
 
     //Jogador
     @Get("search")
+    @Roles("jogador")
     buscarLocais(
         @Query("cidade") cidade: string,
         @Query("data") data: string,
@@ -74,6 +78,7 @@ export class LocalController {
     }
 
     @Get(":id/disponibilidade/data")
+    @Roles("jogador")
     async disponibilidadePorData(
         @Param("id") id: string,
         @Query("data") data: string
@@ -81,5 +86,11 @@ export class LocalController {
 
         if (!data) throw new BadRequestException("Parâmetro 'data' é obrigatório (YYYY-MM-DD).");
         return this.localService.getDisponibilidadePorData(Number(id), data);
+    }
+
+    @Roles('jogador')
+    @Get(':id')
+    async buscarPorId(@Param('id') id: number) {
+        return this.localService.buscarPorId(id);
     }
 }
